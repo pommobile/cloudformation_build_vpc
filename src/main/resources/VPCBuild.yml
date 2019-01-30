@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  CDBBuild:
+    Type: String
+    Default: 10.0.0.0/16
+  CDBBuildPublic:
+    Type: String
+    Default: 10.0.1.0/24
+  CDBBuildPrivate:
+    Type: String
+    Default: 10.0.2.0/24
+Resources:
+  VPCBuild:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref CDBBuild
+  SBNBuildPublic:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPCBuild
+      CidrBlock: !Ref CDBBuildPublic
+      Tags:
+        - Key: Name
+          Value: public
+  SBNBuildPrivate:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPCBuild
+      CidrBlock: !Ref CDBBuildPrivate
+      Tags:
+        - Key: Name
+          Value: private
+  SBNBuildPrivateAZ1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPCBuild
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: us-east-1a
+      Tags:
+        - Key: Name
+          Value: private 1a
+  SBNBuildPrivateAZ2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPCBuild
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: us-east-1b
+      Tags:
+        - Key: Name
+          Value: private 1b
+  RTTBuild:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPCBuild
+  RTTBuildNGW:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPCBuild
+  SRTABuild:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref RTTBuild
+      SubnetId: !Ref SBNBuildPublic
+  SRTABuildNGW:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref RTTBuildNGW
+      SubnetId: !Ref SBNBuildPrivate
+Outputs:
+  VPCBuildOutput:
+    Value: !Ref VPCBuild
+    Export:
+      Name: VPCBuildOutput
+  SBNBuildPublicOutput:
+    Value: !Ref SBNBuildPublic
+    Export:
+      Name: SBNBuildPublicOutput
+  CDBBuildPublicOutput:
+    Value: !Ref CDBBuildPublic
+    Export:
+      Name: CDBBuildPublicOutput
+  SBNBuildPrivateOutput:
+    Value: !Ref SBNBuildPrivate
+    Export:
+      Name: SBNBuildPrivateOutput
+  CDBBuildPrivateOutput:
+    Value: !Ref CDBBuildPrivate
+    Export:
+      Name: CDBBuildPrivateOutput
+  SBNBuildPrivateAZ1Output:
+    Value: !Ref SBNBuildPrivateAZ1
+    Export:
+      Name: SBNBuildPrivateAZ1Output
+  SBNBuildPrivateAZ2Output:
+    Value: !Ref SBNBuildPrivateAZ2
+    Export:
+      Name: SBNBuildPrivateAZ2Output
+  RTTBuildOutput:
+    Value: !Ref RTTBuild
+    Export:
+      Name: RTTBuildOutput
+  RTTBuildNGWOutput:
+    Value: !Ref RTTBuildNGW
+    Export:
+      Name: RTTBuildNGWOutput

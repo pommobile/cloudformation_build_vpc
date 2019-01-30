@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  EIPBuild:
+    Type: 'AWS::EC2::EIP'
+    Properties: {}
+  EIPBuildInternet:
+    Type: 'AWS::EC2::EIP'
+    Properties: {}
+  IGWBuild:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties: {}
+  AGWBuild:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !ImportValue VPCBuildOutput
+      InternetGatewayId: !Ref IGWBuild
+  NGWBuild:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - EIPBuild
+        - AllocationId
+      SubnetId: !ImportValue SBNBuildPublicOutput
+  RTEBuild:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !ImportValue RTTBuildOutput
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGWBuild
+  RTEBuildNGW:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !ImportValue RTTBuildNGWOutput
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NGWBuild
+  PARBuildEIPInternetIp:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: PARBuildEIPInternetIp
+      Type: String
+      Value: !Ref EIPBuildInternet
+Outputs:
+  EIPBuildInternetOutput:
+    Value: !Ref EIPBuildInternet
+    Export:
+      Name: EIPBuildInternetOutput

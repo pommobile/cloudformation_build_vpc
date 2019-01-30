@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  CloudformationBuildVpcTimeStampIfSnaphost:
+    Type: String
+    Default: '20181231.235959-1'
+    Description: "If you depend on a snapshot of cloudformation.build.vpc, enter the snapshot timestamp, or leave as is."
+Mappings:
+  Constants:
+    Path:
+      EndPoint: 'https://s3.amazonaws.com'
+    MavenCoordinates:
+      GroupId: 'cloudformation/build'
+      ArtifactId: 'vpc'
+      Version: ''
+Conditions:
+  UseNotBuiltPath: !Equals 
+    - !FindInMap 
+      - Constants
+      - MavenCoordinates
+      - Version
+    - ''
+  UseSnapshotPath: !And 
+    - !Not 
+      - !Condition UseNotBuiltPath
+    - !Not 
+      - !Equals 
+        - !Select 
+          - '0'
+          - !Split 
+            - '-'
+            - !FindInMap 
+              - Constants
+              - MavenCoordinates
+              - Version
+        - !FindInMap 
+          - Constants
+          - MavenCoordinates
+          - Version
+Resources:
+  VPCBuild:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Join 
+        - ''
+        - - !GetAtt 
+            - PARBuildBCTPath
+            - Value
+          - VPCBuild.yml
+  GWSBuild:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Join 
+        - ''
+        - - !GetAtt 
+            - PARBuildBCTPath
+            - Value
+          - GWSBuild.yml
+      TimeoutInMinutes: 5
+    DependsOn:
+      - VPCBuild
+  IAMBuild:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Join 
+        - ''
+        - - !GetAtt 
+            - PARBuildBCTPath
+            - Value
+          - IAMBuild.yml
+  PARBuildBCTPath:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: PARBuildBCTPath
+      Type: String
+      Value: !If 
+        - UseNotBuiltPath
+        - !Sub 
+          - '${domain}/${bucket}/'
+          - domain: !FindInMap 
+              - Constants
+              - Path
+              - EndPoint
+            bucket: !ImportValue BCTBuildNameOutput
+        - !If 
+          - UseSnapshotPath
+          - !Sub 
+            - >-
+              ${domain}/${bucket}/snapshots/${groupId}/${artifactId}/${version}/${artifactId}-${version_no_snapshot}-${timestamp}-
+            - domain: !FindInMap 
+                - Constants
+                - Path
+                - EndPoint
+              bucket: !ImportValue BCTBuildNameOutput
+              groupId: !FindInMap 
+                - Constants
+                - MavenCoordinates
+                - GroupId
+              artifactId: !FindInMap 
+                - Constants
+                - MavenCoordinates
+                - ArtifactId
+              version: !FindInMap 
+                - Constants
+                - MavenCoordinates
+                - Version
+              version_no_snapshot: !Select 
+                - '0'
+                - !Split 
+                  - '-'
+                  - !FindInMap 
+                    - Constants
+                    - MavenCoordinates
+                    - Version
+              timestamp: !Ref CloudformationBuildVpcTimeStampIfSnaphost
+          - !Sub 
+            - >-
+              ${domain}/${bucket}/releases/${groupId}/${artifactId}/${version}/${artifactId}-${version}-
+            - domain: !FindInMap 
+                - Constants
+                - Path
+                - EndPoint
+              bucket: !ImportValue BCTBuildNameOutput
+              groupId: !FindInMap 
+                - Constants
+                - MavenCoordinates
+                - GroupId
+              artifactId: !FindInMap 
+                - Constants
+                - MavenCoordinates
+                - ArtifactId
+              version: !FindInMap 
+                - Constants
+                - MavenCoordinates
+                - Version
